@@ -2,19 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { auth } from '@clerk/nextjs/server';
 
-const { data, error } = await supabaseAdmin  // Changed from supabase
-  .from('users')
-  .upsert({
-    clerk_user_id: user.id,
-    email: user.emailAddresses[0]?.emailAddress,
-    full_name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-  }, {
-    onConflict: 'clerk_user_id'
-  })
-  .select()
-  .single();
-
-// POST - Request cancellation
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
   
@@ -24,10 +11,9 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   
-  // Get user from database
-  const { data: user } = await supabase
+  const { data: user } = await supabaseAdmin
     .from('users')
-    .select('id')
+    .select('id, email')
     .eq('clerk_user_id', userId)
     .single();
 
@@ -35,8 +21,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  // Create cancellation request
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('cancellation_requests')
     .insert({
       user_id: user.id,
@@ -52,12 +37,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // TODO: Send email notification to you about new cancellation request
-  
   return NextResponse.json(data);
 }
 
-// GET - Fetch user's cancellation requests
 export async function GET(request: NextRequest) {
   const { userId } = await auth();
   
@@ -65,7 +47,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data: user } = await supabase
+  const { data: user } = await supabaseAdmin
     .from('users')
     .select('id')
     .eq('clerk_user_id', userId)
@@ -75,7 +57,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  const { data: requests, error } = await supabase
+  const { data: requests, error } = await supabaseAdmin
     .from('cancellation_requests')
     .select(`
       *,

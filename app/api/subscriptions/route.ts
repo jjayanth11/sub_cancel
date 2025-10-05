@@ -2,19 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { auth } from '@clerk/nextjs/server';
 
-const { data, error } = await supabaseAdmin  // Changed from supabase
-  .from('users')
-  .upsert({
-    clerk_user_id: user.id,
-    email: user.emailAddresses[0]?.emailAddress,
-    full_name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-  }, {
-    onConflict: 'clerk_user_id'
-  })
-  .select()
-  .single();
-  
-// GET - Fetch user's subscriptions
 export async function GET(request: NextRequest) {
   const { userId } = await auth();
   
@@ -22,8 +9,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Get user from database
-  const { data: user } = await supabase
+  const { data: user } = await supabaseAdmin
     .from('users')
     .select('id')
     .eq('clerk_user_id', userId)
@@ -33,8 +19,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  // Fetch subscriptions
-  const { data: subscriptions, error } = await supabase
+  const { data: subscriptions, error } = await supabaseAdmin
     .from('subscriptions')
     .select('*')
     .eq('user_id', user.id)
@@ -48,7 +33,6 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(subscriptions);
 }
 
-// POST - Add new subscription
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
   
@@ -58,8 +42,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   
-  // Get user from database
-  const { data: user } = await supabase
+  const { data: user } = await supabaseAdmin
     .from('users')
     .select('id')
     .eq('clerk_user_id', userId)
@@ -69,8 +52,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  // Insert subscription
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('subscriptions')
     .insert({
       user_id: user.id,
