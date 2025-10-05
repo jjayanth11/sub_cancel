@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 import { auth, currentUser } from '@clerk/nextjs/server';
 
 
-
+const { data, error } = await supabaseAdmin  // Changed from supabase
+  .from('users')
+  .upsert({
+    clerk_user_id: user.id,
+    email: user.emailAddresses[0]?.emailAddress,
+    full_name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+  }, {
+    onConflict: 'clerk_user_id'
+  })
+  .select()
+  .single();
+  
 export async function POST(request: NextRequest) {
   console.log('=== USER SYNC START ===');
   
